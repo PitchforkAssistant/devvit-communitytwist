@@ -1,0 +1,10 @@
+{
+    "extends": "@devvit/public-api/devvit.tsconfig.json",
+    "compilerOptions": {
+        "resolveJsonModule": true,
+        "jsx": "react",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext"
+    },
+    "exclude": ["**/node_modules", "dist", "**/.*/", "eslint.config.mjs"]
+}
