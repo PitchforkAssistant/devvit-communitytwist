@@ -10,8 +10,9 @@ import {getTrackedComments, trackComment, untrackComment} from "../data/trackedC
 import {resultForm} from "../main.js";
 import {ResultFormData} from "./resultForm.js";
 import {addOrUpdateStickiedComment, getWinnerText} from "../scheduler/postsUpdaterJob.js";
+import {evaluateNewPost} from "../triggers/postCreate.js";
 
-export type ManageAction = "track" | "untrack" | "update" | "delete" | "log" | "set";
+export type ManageAction = "track" | "untrack" | "update" | "delete" | "log" | "set" | "new";
 
 export type ManageActionOptions = {
     label: string;
@@ -25,6 +26,7 @@ export const manageActionOptions: ManageActionOptions = [
     {label: "Delete", value: "delete"},
     {label: "Log", value: "log"},
     {label: "Set", value: "set"},
+    {label: "New", value: "new"},
 ];
 
 export type ManageFormData = {
@@ -130,6 +132,10 @@ const formHandler: FormOnSubmitEventHandler<ManageFormSubmitData> = async (event
             await deleteFinishedPost(redis, post.id);
             ui.showToast("Post update queued!");
             break;
+        case "new":
+            await evaluateNewPost(reddit, redis, post, await getAppSettings(settings));
+            ui.showToast("Post update queued!");
+            break;
         case "delete":
             await untrackPost(redis, post.id);
             await safeDeleteComment(reddit, await getPostStickyComment(redis, post.id) ?? "");
@@ -169,6 +175,9 @@ const formHandler: FormOnSubmitEventHandler<ManageFormSubmitData> = async (event
             break;
         case "log":
             ui.showForm(resultForm, await getFormLogResultData(reddit, redis, settings, comment.postId) as JSONObject);
+            break;
+        case "new":
+            ui.showToast("New action is only available for posts!");
             break;
         case "set":
             if (!await isTrackedPost(redis, comment.postId)) {

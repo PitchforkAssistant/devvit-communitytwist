@@ -6,6 +6,12 @@ Source: https://github.com/PitchforkAssistant/devvit-communitytwist
 
 # Change Log
 
+## 1.3.0
+- Add debug tool to evaluate new posts manually, to bypass trigger outages
+
+## 1.2.0
+- Lock stickied comment to prevent people reply to it instead.
+
 ## 1.1.0
 - Fixed some issues with inconsistent meanings of parentId on comments.
 

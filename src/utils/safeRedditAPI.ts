@@ -18,3 +18,11 @@ export async function safeDistinguishComment (comment: Comment, sticky: boolean)
         console.warn("Failed to distinguish comment", e);
     }
 }
+
+export async function safeLockComment (comment: Comment) {
+    try {
+        await comment.lock();
+    } catch (e) {
+        console.warn("Failed to distinguish comment", e);
+    }
+}

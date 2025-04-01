@@ -3,7 +3,7 @@ import {delPostStickyComment, getPostStickyComment, setPostStickyComment, setRes
 import {getFinishedPosts, getTrackedPosts, setFinishedPost} from "../data/trackedPost.js";
 import {AppSettings, getAppSettings} from "../settings.js";
 import {getTrackedComments} from "../data/trackedComment.js";
-import {safeDeleteComment, safeDistinguishComment} from "../utils/safeRedditAPI.js";
+import {safeDeleteComment, safeDistinguishComment, safeLockComment} from "../utils/safeRedditAPI.js";
 
 export const postUpdaterJobName = "postsUpdaterJob";
 
@@ -16,6 +16,7 @@ export async function addOrUpdateStickiedComment (reddit: RedditAPIClient, redis
                 await comment.edit({text: commentBody});
                 await comment.approve();
                 await safeDistinguishComment(comment, true);
+                await safeLockComment(comment);
                 console.log("Updated stickied comment", existingCommentId);
                 return comment; // Sticky updated, no need to create a new one.
             }
@@ -32,6 +33,7 @@ export async function addOrUpdateStickiedComment (reddit: RedditAPIClient, redis
     });
     await setPostStickyComment(redis, postId, newComment.id);
     await safeDistinguishComment(newComment, true);
+    await safeLockComment(newComment);
     console.log("Created new stickied comment", newComment.id);
     return newComment;
 }
