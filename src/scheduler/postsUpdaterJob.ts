@@ -36,6 +36,12 @@ export async function addOrUpdateStickiedComment (reddit: RedditAPIClient, redis
     return newComment;
 }
 
+export function getWinnerText (comment: Comment, appSettings: AppSettings): string {
+    const quotedBody = `\n${comment.body}`.replace(/\n/g, "\n> ");
+    const newCommentBody = appSettings.stickyTemplate.replace(/{{author}}/g, comment.authorName).replace(/{{permalink}}/g, comment.permalink).replace(/{{body}}/g, quotedBody);
+    return newCommentBody;
+}
+
 export async function updatePostResult ({reddit, redis}: TriggerContext, post: Post, appSettings: AppSettings) {
     const trackedComments = await getTrackedComments(redis, post.id);
     const comments = await Promise.all(Object.keys(trackedComments).map(async commentId => {
@@ -79,9 +85,7 @@ export async function updatePostResult ({reddit, redis}: TriggerContext, post: P
     }
 
     // Replace every \n with \n>\s
-    const quotedBody = `\n${highestScoreComment.body}`.replace(/\n/g, "\n> ");
-    const newCommentBody = appSettings.stickyTemplate.replace(/{{author}}/g, highestScoreComment.authorName).replace(/{{permalink}}/g, highestScoreComment.permalink).replace(/{{body}}/g, quotedBody);
-    const resultComment = await addOrUpdateStickiedComment(reddit, redis, post.id, newCommentBody);
+    const resultComment = await addOrUpdateStickiedComment(reddit, redis, post.id, getWinnerText(highestScoreComment, appSettings));
     await setResultComment(redis, highestScoreComment.id, resultComment.id);
     await setFinishedPost(redis, post.id, highestScoreComment.id);
 }

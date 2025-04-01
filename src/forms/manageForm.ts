@@ -3,14 +3,15 @@ import {Context, Devvit, FormFunction, FormKey, FormOnSubmitEvent, FormOnSubmitE
 import {getAppSettings} from "../settings.js";
 import {FieldConfig_Selection_Item as FieldConfigSelectionItem} from "@devvit/protos";
 import {isCommentId, isLinkId} from "@devvit/shared-types/tid.js";
-import {deleteFinishedPost, getFinishedPostWinner, getTrackedPosts, trackPost, untrackPost} from "../data/trackedPost.js";
+import {deleteFinishedPost, getFinishedPostWinner, getTrackedPosts, isTrackedPost, setFinishedPost, trackPost, untrackPost} from "../data/trackedPost.js";
 import {safeDeleteComment} from "../utils/safeRedditAPI.js";
-import {getPostStickyComment} from "../data/stickyComments.js";
+import {getPostStickyComment, setResultComment} from "../data/stickyComments.js";
 import {getTrackedComments, trackComment, untrackComment} from "../data/trackedComment.js";
 import {resultForm} from "../main.js";
 import {ResultFormData} from "./resultForm.js";
+import {addOrUpdateStickiedComment, getWinnerText} from "../scheduler/postsUpdaterJob.js";
 
-export type ManageAction = "track" | "untrack" | "update" | "delete" | "log";
+export type ManageAction = "track" | "untrack" | "update" | "delete" | "log" | "set";
 
 export type ManageActionOptions = {
     label: string;
@@ -23,6 +24,7 @@ export const manageActionOptions: ManageActionOptions = [
     {label: "Update", value: "update"},
     {label: "Delete", value: "delete"},
     {label: "Log", value: "log"},
+    {label: "Set", value: "set"},
 ];
 
 export type ManageFormData = {
@@ -134,6 +136,9 @@ const formHandler: FormOnSubmitEventHandler<ManageFormSubmitData> = async (event
         case "log":
             ui.showForm(resultForm, await getFormLogResultData(reddit, redis, settings, post.id) as JSONObject);
             break;
+        case "set":
+            ui.showToast("Set action is only available for comments!");
+            break;
         default:
             return ui.showToast("Please select a valid action!");
         }
@@ -163,6 +168,16 @@ const formHandler: FormOnSubmitEventHandler<ManageFormSubmitData> = async (event
         case "log":
             ui.showForm(resultForm, await getFormLogResultData(reddit, redis, settings, comment.parentId) as JSONObject);
             break;
+        case "set":
+            if (!await isTrackedPost(redis, comment.parentId)) {
+                return ui.showToast("Parent post is not tracked!");
+            }
+            // eslint-disable-next-line no-case-declarations
+            const resultComment = await addOrUpdateStickiedComment(reddit, redis, comment.parentId, getWinnerText(comment, await getAppSettings(settings)));
+            await setResultComment(redis, comment.id, resultComment.id);
+            await setFinishedPost(redis, comment.parentId, resultComment.id);
+            await untrackPost(redis, comment.parentId);
+            return ui.showToast("Result set and post untracked to make it stick!");
         default:
             return ui.showToast("Please select a valid action!");
         }
