@@ -6,5 +6,5 @@ Source: https://github.com/PitchforkAssistant/devvit-communitytwist
 
 # Change Log
 
-## 0.1.0
+## 1.0.0
 - Initial bare-bones version for the r/TIFU April Fool's event.
