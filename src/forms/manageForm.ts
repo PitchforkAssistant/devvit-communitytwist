@@ -111,6 +111,8 @@ const formHandler: FormOnSubmitEventHandler<ManageFormSubmitData> = async (event
         return;
     }
 
+    console.log("Manage form submit event", event);
+
     const action = event.values.action[0];
 
     if (isLinkId(event.values.fullId)) {
