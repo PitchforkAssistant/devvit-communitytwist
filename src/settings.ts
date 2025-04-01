@@ -41,7 +41,7 @@ export const appSettings = Devvit.addSettings([
     {
         type: "boolean",
         name: "enabled",
-        label: "Crosspost Subscriber Goal Posts",
+        label: "Enabled",
         helpText: "This setting turns on or off the entire app. If it's disabled, the app will not run at all.",
         defaultValue: defaultAppSettings.enabled,
     },
