@@ -27,4 +27,11 @@ export {modActionTrigger} from "./triggers/modAction.js";
 export {postCreateTrigger} from "./triggers/postCreate.js";
 export {postDeleteTrigger} from "./triggers/postDelete.js";
 
+// Forms
+export {resultForm} from "./forms/resultForm.js";
+export {manageForm} from "./forms/manageForm.js";
+
+// Buttons
+export {manageButton} from "./buttons/manageButton.js";
+
 export default Devvit;

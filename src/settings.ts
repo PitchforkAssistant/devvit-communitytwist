@@ -8,6 +8,7 @@ export type AppSettings = {
     commentPrefix: string;
     stickyTemplate: string;
     newPostSticky: string;
+    allowOp: boolean;
 }
 
 export const defaultAppSettings: AppSettings = {
@@ -16,8 +17,9 @@ export const defaultAppSettings: AppSettings = {
     stickyMinutes: 720,
     postPrefix: "TI ",
     commentPrefix: "FU ",
-    stickyTemplate: "This is how you fucked up, as was written by u/{{author}} in the comment [here]({{permalink}}):\n\n> {{body}}",
+    stickyTemplate: "This is how you fucked up, as was written by u/{{author}} in [this comment]({{permalink}}):\n\n{{body}}",
     newPostSticky: "Thank you for submitting what you did. You will find out how you fucked up in 12 hours.",
+    allowOp: true,
 };
 
 export async function getAppSettings (settings: SettingsClient): Promise<AppSettings> {
@@ -31,6 +33,7 @@ export async function getAppSettings (settings: SettingsClient): Promise<AppSett
         commentPrefix: typeof allSettings.commentPrefix === "string" ? allSettings.commentPrefix : defaultAppSettings.commentPrefix,
         stickyTemplate: typeof allSettings.stickyTemplate === "string" ? allSettings.stickyTemplate : defaultAppSettings.stickyTemplate,
         newPostSticky: typeof allSettings.newPostSticky === "string" ? allSettings.newPostSticky : defaultAppSettings.newPostSticky,
+        allowOp: typeof allSettings.allowOp === "boolean" ? allSettings.allowOp : defaultAppSettings.allowOp,
     };
 }
 
@@ -71,17 +74,24 @@ export const appSettings = Devvit.addSettings([
         defaultValue: defaultAppSettings.commentPrefix,
     },
     {
-        type: "string",
+        type: "paragraph",
         name: "stickyTemplate",
         label: "Sticky Template",
         helpText: "This is the template for the sticky comment. You can use {{author}} to get the author of the winning comment, {{permalink}} to link to the comment itself, and {{body}} to get the comment body in a quote block.",
         defaultValue: defaultAppSettings.stickyTemplate,
     },
     {
-        type: "string",
+        type: "paragraph",
         name: "newPostSticky",
         label: "New Post Sticky",
         helpText: "This is the template for the sticky comment before the results are tracked.",
         defaultValue: defaultAppSettings.newPostSticky,
+    },
+    {
+        type: "boolean",
+        name: "allowOp",
+        label: "Allow OP's comment to be considered",
+        helpText: "This setting allows you to turn off the OP's comment from being considered for the sticky comment.",
+        defaultValue: defaultAppSettings.allowOp,
     },
 ]);

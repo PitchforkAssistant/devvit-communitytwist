@@ -1,7 +1,7 @@
 import {ModAction} from "@devvit/protos";
 import {Devvit, TriggerContext} from "@devvit/public-api";
 import {untrackComment} from "../data/trackedComment.js";
-import {deleteFinishedPost} from "../data/trackedPost.js";
+import {deleteFinishedPost, getFinishedPostWinner} from "../data/trackedPost.js";
 import {evaluateNewComment} from "./commentCreate.js";
 import {getStickiedComment} from "devvit-helpers";
 import {getAppSettings} from "../settings.js";
@@ -20,7 +20,9 @@ export async function onModAction (event: ModAction, context: TriggerContext) {
     if (event.targetComment) {
         if (event.action === "removecomment" || event.action === "spamcomment") {
             await untrackComment(context.redis, event.targetComment.parentId, event.targetComment.id);
-            await deleteFinishedPost(context.redis, event.targetComment.parentId);
+            if (await getFinishedPostWinner(context.redis, event.targetComment.parentId) === event.targetComment.id) {
+                await deleteFinishedPost(context.redis, event.targetComment.parentId);
+            }
         } else if (event.action === "approvecomment") {
             await evaluateNewComment(context.reddit, context.redis, await context.reddit.getCommentById(event.targetComment.id), await getAppSettings(context.settings));
         }

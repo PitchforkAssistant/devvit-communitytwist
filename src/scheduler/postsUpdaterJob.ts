@@ -1,26 +1,28 @@
 import {Comment, Devvit, Post, RedditAPIClient, RedisClient, ScheduledJobEvent, TriggerContext} from "@devvit/public-api";
-import {getStickiedComment} from "devvit-helpers";
-import {delPostStickyComment, setPostStickyComment, setResultComment} from "../data/stickyComments.js";
+import {delPostStickyComment, getPostStickyComment, setPostStickyComment, setResultComment} from "../data/stickyComments.js";
 import {getFinishedPosts, getTrackedPosts, setFinishedPost} from "../data/trackedPost.js";
 import {AppSettings, getAppSettings} from "../settings.js";
 import {getTrackedComments} from "../data/trackedComment.js";
+import {safeDeleteComment, safeDistinguishComment} from "../utils/safeRedditAPI.js";
 
 export const postUpdaterJobName = "postsUpdaterJob";
 
 export async function addOrUpdateStickiedComment (reddit: RedditAPIClient, redis: RedisClient, postId: string, commentBody: string): Promise<Comment> {
-    const existingCommentId = await getStickiedComment(reddit, postId);
+    const existingCommentId = await getPostStickyComment(redis, postId);
     if (existingCommentId) {
         try {
-            const comment = await reddit.getCommentById(existingCommentId.id);
+            const comment = await reddit.getCommentById(existingCommentId);
             if (comment) {
                 await comment.edit({text: commentBody});
-                await comment.distinguish(true);
-                console.log("Updated stickied comment", existingCommentId.id);
+                await comment.approve();
+                await safeDistinguishComment(comment, true);
+                console.log("Updated stickied comment", existingCommentId);
                 return comment; // Sticky updated, no need to create a new one.
             }
         } catch (e) {
             console.error("Failed to update stickied comment", e);
             await delPostStickyComment(redis, postId);
+            await safeDeleteComment(reddit, existingCommentId);
         }
     }
 
@@ -29,7 +31,7 @@ export async function addOrUpdateStickiedComment (reddit: RedditAPIClient, redis
         text: commentBody,
     });
     await setPostStickyComment(redis, postId, newComment.id);
-    await newComment.distinguish(true);
+    await safeDistinguishComment(newComment, true);
     console.log("Created new stickied comment", newComment.id);
     return newComment;
 }
@@ -57,6 +59,10 @@ export async function updatePostResult ({reddit, redis}: TriggerContext, post: P
             continue; // Skip removed, deleted, invalid comments
         }
 
+        if (!appSettings.allowOp && comment.authorId === post.authorId) {
+            continue; // Skip OP comments
+        }
+
         if (!highestScoreComment) {
             highestScoreComment = comment;
             continue;
@@ -72,7 +78,9 @@ export async function updatePostResult ({reddit, redis}: TriggerContext, post: P
         return;
     }
 
-    const newCommentBody = appSettings.stickyTemplate.replace(/{{author}}/g, highestScoreComment.authorName).replace(/{{permalink}}/g, highestScoreComment.permalink).replace(/{{body}}/g, highestScoreComment.body);
+    // Replace every \n with \n>\s
+    const quotedBody = `\n${highestScoreComment.body}`.replace(/\n/g, "\n> ");
+    const newCommentBody = appSettings.stickyTemplate.replace(/{{author}}/g, highestScoreComment.authorName).replace(/{{permalink}}/g, highestScoreComment.permalink).replace(/{{body}}/g, quotedBody);
     const resultComment = await addOrUpdateStickiedComment(reddit, redis, post.id, newCommentBody);
     await setResultComment(redis, highestScoreComment.id, resultComment.id);
     await setFinishedPost(redis, post.id, highestScoreComment.id);

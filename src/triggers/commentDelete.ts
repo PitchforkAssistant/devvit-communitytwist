@@ -3,8 +3,7 @@ import {Devvit, TriggerContext} from "@devvit/public-api";
 import {untrackComment} from "../data/trackedComment.js";
 import {isLinkId} from "@devvit/shared-types/tid.js";
 import {getResultComment} from "../data/stickyComments.js";
-import {updatePostResult} from "../scheduler/postsUpdaterJob.js";
-import {getAppSettings} from "../settings.js";
+import {deleteFinishedPost} from "../data/trackedPost.js";
 
 /**
  * The "CommentDelete" trigger fires after a comment has been deleted or removed.
@@ -31,7 +30,7 @@ export async function onCommentDelete (event: CommentDelete, context: TriggerCon
 
     const resultCommentId = await getResultComment(context.redis, event.commentId);
     if (resultCommentId && resultCommentId === event.commentId) {
-        await updatePostResult(context, await context.reddit.getPostById(event.parentId), await getAppSettings(context.settings));
+        await deleteFinishedPost(context.redis, event.parentId);
     }
 }
 
