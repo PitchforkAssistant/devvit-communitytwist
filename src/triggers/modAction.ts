@@ -19,9 +19,9 @@ export async function onModAction (event: ModAction, context: TriggerContext) {
     }
     if (event.targetComment) {
         if (event.action === "removecomment" || event.action === "spamcomment") {
-            await untrackComment(context.redis, event.targetComment.parentId, event.targetComment.id);
-            if (await getFinishedPostWinner(context.redis, event.targetComment.parentId) === event.targetComment.id) {
-                await deleteFinishedPost(context.redis, event.targetComment.parentId);
+            await untrackComment(context.redis, event.targetComment.postId, event.targetComment.id);
+            if (await getFinishedPostWinner(context.redis, event.targetComment.postId) === event.targetComment.id) {
+                await deleteFinishedPost(context.redis, event.targetComment.postId);
             }
         } else if (event.action === "approvecomment") {
             await evaluateNewComment(context.reddit, context.redis, await context.reddit.getCommentById(event.targetComment.id), await getAppSettings(context.settings));

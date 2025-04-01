@@ -16,7 +16,10 @@ export function isTrackableComment (comment: Comment, appSettings: AppSettings):
     if (comment.body.startsWith(appSettings.commentPrefix)) {
         return true;
     }
-    if (!isLinkId(comment.parentId)) {
+    if (comment.parentId) {
+        return false; // We only care about top level comments.
+    }
+    if (!isLinkId(comment.postId)) {
         return false;
     }
     return false;

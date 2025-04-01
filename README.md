@@ -6,5 +6,8 @@ Source: https://github.com/PitchforkAssistant/devvit-communitytwist
 
 # Change Log
 
+## 1.1.0
+- Fixed some issues with inconsistent meanings of parentId on comments.
+
 ## 1.0.0
 - Initial bare-bones version for the r/TIFU April Fool's event.

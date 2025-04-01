@@ -146,39 +146,39 @@ const formHandler: FormOnSubmitEventHandler<ManageFormSubmitData> = async (event
         }
     } else if (isCommentId(event.values.fullId)) {
         const comment = await reddit.getCommentById(event.values.fullId);
-        if (!isLinkId(comment.parentId)) {
+        if (!isLinkId(comment.postId) || isCommentId(comment.parentId)) {
             return ui.showToast("Not a top level comment!");
         }
         switch (action) {
         case "track":
-            await trackComment(redis, comment.parentId, comment.id, comment.score);
+            await trackComment(redis, comment.postId, comment.id, comment.score);
             ui.showToast("Comment tracked!");
             break;
         case "untrack":
-            await untrackComment(redis, comment.parentId, comment.id);
+            await untrackComment(redis, comment.postId, comment.id);
             ui.showToast("Comment untracked!");
             break;
         case "update":
-            await deleteFinishedPost(redis, comment.parentId);
+            await deleteFinishedPost(redis, comment.postId);
             ui.showToast("Queud result update for parent post!");
             break;
         case "delete":
-            await untrackComment(redis, comment.parentId, comment.id);
+            await untrackComment(redis, comment.postId, comment.id);
             await safeDeleteComment(reddit, comment.id);
             ui.showToast("Comment untracked/deletion attempted!");
             break;
         case "log":
-            ui.showForm(resultForm, await getFormLogResultData(reddit, redis, settings, comment.parentId) as JSONObject);
+            ui.showForm(resultForm, await getFormLogResultData(reddit, redis, settings, comment.postId) as JSONObject);
             break;
         case "set":
-            if (!await isTrackedPost(redis, comment.parentId)) {
+            if (!await isTrackedPost(redis, comment.postId)) {
                 return ui.showToast("Parent post is not tracked!");
             }
             // eslint-disable-next-line no-case-declarations
-            const resultComment = await addOrUpdateStickiedComment(reddit, redis, comment.parentId, getWinnerText(comment, await getAppSettings(settings)));
+            const resultComment = await addOrUpdateStickiedComment(reddit, redis, comment.postId, getWinnerText(comment, await getAppSettings(settings)));
             await setResultComment(redis, comment.id, resultComment.id);
-            await setFinishedPost(redis, comment.parentId, resultComment.id);
-            await untrackPost(redis, comment.parentId);
+            await setFinishedPost(redis, comment.postId, resultComment.id);
+            await untrackPost(redis, comment.postId);
             return ui.showToast("Result set and post untracked to make it stick!");
         default:
             return ui.showToast("Please select a valid action!");

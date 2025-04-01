@@ -15,12 +15,12 @@ export async function evaluateNewComment (reddit: RedditAPIClient, redis: RedisC
 
     if (isTrackableComment(comment, appSettings)) {
         console.log("Tracking comment ", comment.id);
-        await trackComment(redis, comment.parentId, comment.id, comment.score);
-        const winnerId = await getFinishedPostWinner(redis, comment.parentId);
+        await trackComment(redis, comment.postId, comment.id, comment.score);
+        const winnerId = await getFinishedPostWinner(redis, comment.postId);
         if (winnerId && winnerId !== comment.id) {
             const winnerComment = await reddit.getCommentById(winnerId);
             if (winnerComment.score < comment.score) {
-                await deleteFinishedPost(redis, comment.parentId);
+                await deleteFinishedPost(redis, comment.postId);
             }
         }
     }

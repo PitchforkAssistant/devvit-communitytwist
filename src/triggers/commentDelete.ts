@@ -11,7 +11,7 @@ import {deleteFinishedPost} from "../data/trackedPost.js";
  */
 
 export async function onCommentDelete (event: CommentDelete, context: TriggerContext) {
-    if (!event.commentId || !event.parentId) {
+    if (!event.commentId || !event.postId) {
         console.error("CommentDelete event does not contain required IDs", event);
         return;
     }
@@ -22,15 +22,19 @@ export async function onCommentDelete (event: CommentDelete, context: TriggerCon
     if (event.source !== EventSource.USER) {
         return;
     }
-    if (!isLinkId(event.parentId)) {
-        return; // We only care about to level comments.
+    if (event.parentId && !isLinkId(event.parentId)) {
+        return; // We only care about top level comments.
+    }
+
+    if (!isLinkId(event.postId)) {
+        return;
     }
     // Probably just cheaper to zDel than to scan and check if it exists first.
-    await untrackComment(context.redis, event.parentId, event.commentId);
+    await untrackComment(context.redis, event.postId, event.commentId);
 
     const resultCommentId = await getResultComment(context.redis, event.commentId);
     if (resultCommentId && resultCommentId === event.commentId) {
-        await deleteFinishedPost(context.redis, event.parentId);
+        await deleteFinishedPost(context.redis, event.postId);
     }
 }
 
