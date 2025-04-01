@@ -1,6 +1,10 @@
 import {ModAction} from "@devvit/protos";
 import {Devvit, TriggerContext} from "@devvit/public-api";
-import {onAnyTriggerConsoleLog} from "devvit-helpers";
+import {untrackComment} from "../data/trackedComment.js";
+import {deleteFinishedPost} from "../data/trackedPost.js";
+import {evaluateNewComment} from "./commentCreate.js";
+import {getStickiedComment} from "devvit-helpers";
+import {getAppSettings} from "../settings.js";
 
 /**
  * The "ModAction" trigger fires for every new entry in the subreddit's moderation log.
@@ -9,7 +13,36 @@ import {onAnyTriggerConsoleLog} from "devvit-helpers";
  */
 
 export async function onModAction (event: ModAction, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
+    if (!event.action) {
+        console.error("ModAction event does not contain an action??", event);
+        return;
+    }
+    if (event.targetComment) {
+        if (event.action === "removecomment" || event.action === "spamcomment") {
+            await untrackComment(context.redis, event.targetComment.parentId, event.targetComment.id);
+            await deleteFinishedPost(context.redis, event.targetComment.parentId);
+        } else if (event.action === "approvecomment") {
+            await evaluateNewComment(context.reddit, context.redis, await context.reddit.getCommentById(event.targetComment.id), await getAppSettings(context.settings));
+        }
+    }
+    if (event.targetPost) {
+        if (event.action === "removelink" || event.action === "spamlink" || event.action === "approvelink") {
+            const stickyId = await getStickiedComment(context.reddit, event.targetPost.id);
+            if (stickyId) {
+                try {
+                    const stickyComment = await context.reddit.getCommentById(stickyId.id);
+                    if (event.action === "approvelink") {
+                        await stickyComment.approve();
+                        await stickyComment.distinguish(true);
+                    } else {
+                        await stickyComment.remove();
+                    }
+                } catch (e) {
+                    console.error("Failed to delete stickied comment", e);
+                }
+            }
+        }
+    }
 }
 
 export const modActionTrigger = Devvit.addTrigger({

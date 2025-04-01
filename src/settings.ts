@@ -1,58 +1,87 @@
-import {Devvit} from "@devvit/public-api";
-import {LABELS, HELP_TEXTS, DEFAULTS, OPTIONS} from "./constants.js";
-import {validateDiceRoll} from "./validators/validateDiceRoll.js";
+import {Devvit, SettingsClient} from "@devvit/public-api";
 
-// Set up the configuration field presented to the user for each installation (subreddit) of the app.
-export const devvitAppSettings = Devvit.addSettings([
+export type AppSettings = {
+    enabled: boolean;
+    trackNewPosts: boolean;
+    stickyMinutes: number;
+    postPrefix: string;
+    commentPrefix: string;
+    stickyTemplate: string;
+    newPostSticky: string;
+}
+
+export const defaultAppSettings: AppSettings = {
+    enabled: false,
+    trackNewPosts: false,
+    stickyMinutes: 720,
+    postPrefix: "TI ",
+    commentPrefix: "FU ",
+    stickyTemplate: "This is how you fucked up, as was written by u/{{author}} in the comment [here]({{permalink}}):\n\n> {{body}}",
+    newPostSticky: "Thank you for submitting what you did. You will find out how you fucked up in 12 hours.",
+};
+
+export async function getAppSettings (settings: SettingsClient): Promise<AppSettings> {
+    const allSettings = await settings.getAll<AppSettings>();
+
+    return {
+        enabled: typeof allSettings.enabled === "boolean" ? allSettings.enabled : defaultAppSettings.enabled,
+        trackNewPosts: typeof allSettings.trackNewPosts === "boolean" ? allSettings.trackNewPosts : defaultAppSettings.trackNewPosts,
+        stickyMinutes: typeof allSettings.stickyMinutes === "number" ? allSettings.stickyMinutes : defaultAppSettings.stickyMinutes,
+        postPrefix: typeof allSettings.postPrefix === "string" ? allSettings.postPrefix : defaultAppSettings.postPrefix,
+        commentPrefix: typeof allSettings.commentPrefix === "string" ? allSettings.commentPrefix : defaultAppSettings.commentPrefix,
+        stickyTemplate: typeof allSettings.stickyTemplate === "string" ? allSettings.stickyTemplate : defaultAppSettings.stickyTemplate,
+        newPostSticky: typeof allSettings.newPostSticky === "string" ? allSettings.newPostSticky : defaultAppSettings.newPostSticky,
+    };
+}
+
+export const appSettings = Devvit.addSettings([
     {
-        type: "number",
-        name: "diceRoll",
-        label: LABELS.DICE_ROLL,
-        helpText: HELP_TEXTS.DICE_ROLL,
-        defaultValue: DEFAULTS.DICE_ROLL,
-        onValidate: validateDiceRoll,
+        type: "boolean",
+        name: "enabled",
+        label: "Crosspost Subscriber Goal Posts",
+        helpText: "This setting turns on or off the entire app. If it's disabled, the app will not run at all.",
+        defaultValue: defaultAppSettings.enabled,
     },
     {
         type: "boolean",
-        name: "toggle",
-        label: LABELS.TOGGLE,
-        helpText: HELP_TEXTS.TOGGLE,
-        defaultValue: DEFAULTS.TOGGLE,
+        name: "trackNewPosts",
+        label: "Track New Posts",
+        helpText: "This setting allows you to turn off the tracking of new posts. This is useful for ending an event, where you don't want to track new posts anymore, but you still want to finish up posts that are already there.",
+        defaultValue: defaultAppSettings.enabled,
     },
     {
-        type: "select",
-        name: "dropdownSelect",
-        label: LABELS.DROPDOWN_SELECT,
-        helpText: HELP_TEXTS.DROPDOWN_SELECT,
-        defaultValue: DEFAULTS.SELECT,
-        options: OPTIONS.SELECT,
+        type: "number",
+        name: "stickyMinutes",
+        label: "Time to sticky the most upvoted reply.",
+        helpText: "Time in minutes to sticky the most upvoted reply that starts with the comment prefix on a post that starts with the post prefix.",
+        defaultValue: defaultAppSettings.stickyMinutes,
     },
     {
-        type: "select",
-        name: "multiSelect",
-        label: LABELS.MULTI_SELECT,
-        helpText: HELP_TEXTS.MULTI_SELECT,
-        defaultValue: DEFAULTS.SELECT,
-        options: OPTIONS.SELECT,
-        multiSelect: true,
+        type: "string",
+        name: "postPrefix",
+        label: "Post Prefix",
+        helpText: "This is the prefix of posts that will be tracked by the app. These posts will be eligible for the sticky comment with the most upvoted reply.",
+        defaultValue: defaultAppSettings.postPrefix,
     },
     {
-        type: "group",
-        label: LABELS.GROUP,
-        helpText: HELP_TEXTS.GROUP,
-        fields: [
-            {
-                type: "string",
-                name: "shortText",
-                label: LABELS.SHORT_TEXT,
-                helpText: HELP_TEXTS.SHORT_TEXT,
-            },
-            {
-                type: "paragraph",
-                name: "longText",
-                label: LABELS.LONG_TEXT,
-                helpText: HELP_TEXTS.LONG_TEXT,
-            },
-        ],
+        type: "string",
+        name: "commentPrefix",
+        label: "Comment Prefix",
+        helpText: "This is the prefix of comments that will be tracked by the app. These comments will be eligible for the sticky comment spot when the time runs out on an eligible post.",
+        defaultValue: defaultAppSettings.commentPrefix,
+    },
+    {
+        type: "string",
+        name: "stickyTemplate",
+        label: "Sticky Template",
+        helpText: "This is the template for the sticky comment. You can use {{author}} to get the author of the winning comment, {{permalink}} to link to the comment itself, and {{body}} to get the comment body in a quote block.",
+        defaultValue: defaultAppSettings.stickyTemplate,
+    },
+    {
+        type: "string",
+        name: "newPostSticky",
+        label: "New Post Sticky",
+        helpText: "This is the template for the sticky comment before the results are tracked.",
+        defaultValue: defaultAppSettings.newPostSticky,
     },
 ]);
